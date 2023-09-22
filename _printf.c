@@ -1,46 +1,84 @@
 #include "main.h"
+#include <stdarg.h>
+
 /**
- * _printf - replication of some of the features from C function printf()
- * @format: character string of directives, flags, modifiers, & specifiers
- * Description: This function uses the variable arguments functionality
- * Return: number of characters printed
+ * check_format - checks if there is a valid format specifier
+ * @format: possible valid format specifier
+ * Return: pointer to valid function or NULL
+ */
+int (*check_format(const char *format))(va_list)
+{
+	int i = 0;
+	print_t p[] = {
+		{"c", print_c},
+		{"s", print_s},
+		{"i", print_i},
+		{"d", print_d},
+		{"b", print_b},
+		{"u", print_u},
+		{"o", print_o},
+		{"x", print_x},
+		{"X", print_X},
+		{"p", print_p},
+		{"S", print_S},
+		{"r", print_r},
+		{"R", print_R},
+		{NULL, NULL}
+	};
+
+	for (; p[i].t != NULL; i++)
+	{
+		if (*(p[i].t) == *format)
+			break;
+	}
+	return (p[i].f);
+}
+
+/**
+ * _printf - function for format printing
+ * @format: list of arguments to printing
+ * Return: Number of characters to printing
  */
 int _printf(const char *format, ...)
 {
-	va_list args_list;
-	list_g *inv;
-	void (*temp_func)(list_g *);
+	va_list ap;
+	int (*f)(va_list);
+	unsigned int i = 0, counter = 0;
 
-	if (!format)
+	if (format == NULL)
 		return (-1);
-	va_start(args_list, format);
-	inv = build_list(&args_list, format);
 
-	while (inv && format[inv->i] && !inv->error)
+	va_start(ap, format);
+	while (format && format[i])
 	{
-		inv->c0 = format[inv->i];
-		if (inv->c0 != '%')
-			write_buffer(inv);
+		if (format[i] != '%')
+		{
+			_putchar(format[i]);
+			counter++;
+			i++;
+			continue;
+		}
 		else
 		{
-			parse_specifiers(inv);
-			temp_func = match_specifier(inv);
-			if (temp_func)
-				temp_func(inv);
-			else if (inv->c1)
+			if (format[i + 1] == '%')
 			{
-				if (inv->flag)
-					inv->flag = 0;
-				write_buffer(inv);
+				_putchar('%');
+				counter++;
+				i += 2;
+				continue;
 			}
 			else
 			{
-				if (inv->space)
-					inv->buffer[--(inv->buf_index)] = '\0';
-				inv->error = 1;
+				f = check_format(&format[i + 1]);
+				if (f == NULL)
+					return (-1);
+				i += 2;
+				counter += f(ap);
+				continue;
 			}
 		}
-		inv->i++;
+		i++;
 	}
-	return (end_func(inv));
+	va_end(ap);
+	return (counter);
 }
